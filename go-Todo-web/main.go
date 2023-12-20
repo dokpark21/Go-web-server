@@ -3,13 +3,16 @@ package main
 import (
 	"net/http"
 	"github.com/codegangsta/negroni"
-	"github.com/choiseungyoun/go-Todo-web/app"
+	"go-Todo-web.example/app"
 )
 
 func main() {
 	m := app.MakeHandler()
 	n := negroni.Classic()
-	n.useHandler(m)
+	n.UseHandler(m)
 
-	http.ListenAndServe(":3000", n)
+	err := http.ListenAndServe(":3000", n)
+	if err != nil {
+		panic(err)
+	}
 }

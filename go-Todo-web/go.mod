@@ -5,6 +5,7 @@ go 1.21.0
 require (
 	github.com/codegangsta/negroni v1.0.0
 	github.com/gorilla/mux v1.8.1
+	github.com/mattn/go-sqlite3 v1.14.19
 	github.com/stretchr/testify v1.8.4
 	github.com/unrolled/render v1.6.1
 )

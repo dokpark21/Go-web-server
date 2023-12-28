@@ -4,8 +4,8 @@ import (
 	"net/http"
 	"github.com/gorilla/mux"
 	"github.com/unrolled/render"
-	"time"
 	"strconv"
+	"go-Todo-web.example/model"
 )
 
 // json을 반환할 것이기 때문에 render를 만들어준다.
@@ -41,6 +41,13 @@ func removeTodoHandler(w http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
 	id, _ := strconv.Atoi(vars["id"])
 	ok := model.RemoveTodo(id)
+
+	if ok {
+			rd.JSON(w, http.StatusOK, Success{true})	
+	}else {
+			rd.JSON(w, http.StatusOK, Success{false})
+	}
+
 	// if _, ok := todoMap[id]; ok{
 	// 	delete(todoMap, id)
 	// 	rd.JSON(w, http.StatusOK, Success{true})
@@ -53,16 +60,23 @@ func completeTodoHandler(w http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
 	id, _ := strconv.Atoi(vars["id"])
 	complete := r.FormValue("complete") == "true"
-	if todo, ok := todoMap[id]; ok{
-		todo.Completed = complete
-		rd.JSON(w, http.StatusOK, Success{true})
-	} else {
-		rd.JSON(w, http.StatusOK, Success{false})
+
+	ok := model.CompleteTodo(id, complete)
+
+	if ok {
+			rd.JSON(w, http.StatusOK, Success{true})	
+	}else {
+			rd.JSON(w, http.StatusOK, Success{false})
 	}
+	// if todo, ok := todoMap[id]; ok{
+	// 	todo.Completed = complete
+	// 	rd.JSON(w, http.StatusOK, Success{true})
+	// } else {
+	// 	rd.JSON(w, http.StatusOK, Success{false})
+	// }
 }
 
 func MakeHandler() http.Handler {
-	todoMap = make(map[int]*Todo)
 	rd = render.New()
 	r := mux.NewRouter()
 

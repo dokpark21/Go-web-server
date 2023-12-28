@@ -8,6 +8,7 @@ import (
 	"net/url"
 	"encoding/json"
 	"strconv"
+	"go-Todo-web.example/model"
 )
 
 func TestTodos (t *testing.T) {
@@ -18,7 +19,7 @@ func TestTodos (t *testing.T) {
 	assert.NoError(err)
 	assert.Equal(http.StatusCreated, resp.StatusCode)
 
-	var todo Todo
+	var todo model.Todo
 
 	err = json.NewDecoder(resp.Body).Decode(&todo)
 	assert.NoError(err)
@@ -40,7 +41,7 @@ func TestTodos (t *testing.T) {
 	assert.NoError(err)
 	assert.Equal(http.StatusOK, resp.StatusCode)
 
-	var todoList []*Todo
+	var todoList []*model.Todo
 
 	err = json.NewDecoder(resp.Body).Decode(&todoList)
 	assert.NoError(err)

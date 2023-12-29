@@ -1,33 +1,75 @@
 package model
 
 import (
-	"time"
 	"database/sql"
+	"time"
+
 	_ "github.com/mattn/go-sqlite3" // 패키지를 암시적으로 사용(명시적X)
 )
 
 type sqliteHandler struct {
-	
+	db *sql.DB
+}
+
+func (s *sqliteHandler) Close() {
+	s.db.Close()
 }
 
 // memoryHandler의 메서드 정의
-func (s *sqliteHandler)GetTodos() []*Todo{
-	return nil
+func (s *sqliteHandler) GetTodos() []*Todo {
+	todos := []*Todo{}
+	rows, err := s.db.Query("SELECT id, name, complete, createdAt FROM todos")
+	if err != nil {
+		panic(err)
+	}
+	defer rows.Close()
+	for rows.Next() {
+		var todo Todo
+		rows.Scan(&todo.ID, &todo.Name, &todo.Completed, &todo.CreatedAt)
+		todos = append(todos, &todo)
+	}
+	return todos
 }
 
-func (s *sqliteHandler)AddTodo(name string) *Todo{
-	return nil
+func (s *sqliteHandler) AddTodo(name string) *Todo {
+	stmt, err := s.db.Prepare("INSERT INTO todos (name, complete, createdAt) VALUES (?, ?, datetime('now'))")
+	if err != nil {
+		panic(err)
+	}
+	rst, err := stmt.Exec(name, false)
+	if err != nil {
+		panic(err)
+	}
+	id, _ := rst.LastInsertId()
+	var todo Todo
+	todo.ID = int(id)
+	todo.Name = name
+	todo.Completed = false
+	todo.CreatedAt = time.Now()
+	return &todo
 }
 
-func (s *sqliteHandler)RemoveTodo(id int) bool{
+func (s *sqliteHandler) RemoveTodo(id int) bool {
 	return false
 }
 
-func (s *sqliteHandler)CompleteTodo(id int, complete bool) bool{
+func (s *sqliteHandler) CompleteTodo(id int, complete bool) bool {
 	return false
 }
 
-func newSqliteHandler() dbHandler{
+func newSqliteHandler() DBHandler {
 	database, err := sql.Open("sqlite3", "./test.db")
-	return &sqliteHandler{}
+	if err != nil {
+		panic(err)
+	}
+	// table 생성 sql query string
+	statement, _ := database.Prepare(
+		`CREATE TABLE IF NOT EXISTS todos (
+			id INTEGER PRIMARY KEY AUTOINCREMENT,
+			name TEXT,
+			complete BOOLEAN,
+			createdAt DATETIME
+		)`)
+	statement.Exec()
+	return &sqliteHandler{db: database}
 }

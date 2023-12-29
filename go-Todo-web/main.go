@@ -2,12 +2,14 @@ package main
 
 import (
 	"net/http"
+
 	"github.com/codegangsta/negroni"
 	"go-Todo-web.example/app"
 )
 
 func main() {
 	m := app.MakeHandler()
+	defer m.Close()
 	n := negroni.Classic()
 	n.UseHandler(m)
 

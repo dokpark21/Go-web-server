@@ -50,15 +50,34 @@ func (s *sqliteHandler) AddTodo(name string) *Todo {
 }
 
 func (s *sqliteHandler) RemoveTodo(id int) bool {
-	return false
+	stmt, err := s.db.Prepare("DELETE FROM todos WHERE id=?")
+	if err != nil {
+		panic(err)
+	}
+	rst, err := stmt.Exec(id)
+	if err != nil {
+		panic(err)
+	}
+	cnt, _ := rst.RowsAffected()
+	return cnt > 0
 }
 
 func (s *sqliteHandler) CompleteTodo(id int, complete bool) bool {
-	return false
+	stmt, err := s.db.Prepare("UPDATE todos SET complete=? WHERE id=?")
+	if err != nil {
+		panic(err)
+	}
+	rst, err := stmt.Exec(complete, id)
+	if err != nil {
+		panic(err)
+	}
+
+	cnt, _ := rst.RowsAffected()
+	return cnt > 0
 }
 
-func newSqliteHandler() DBHandler {
-	database, err := sql.Open("sqlite3", "./test.db")
+func newSqliteHandler(filepath string) DBHandler {
+	database, err := sql.Open("sqlite3", filepath)
 	if err != nil {
 		panic(err)
 	}

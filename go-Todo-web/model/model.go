@@ -25,7 +25,7 @@ type DBHandler interface {
 // handler는 dbHandler의 instance를 들고 있다.
 var handler DBHandler
 
-func NewDBHandler() DBHandler {
-	return newSqliteHandler()
+func NewDBHandler(filepath string) DBHandler {
+	return newSqliteHandler(filepath)
 
 }

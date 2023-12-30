@@ -1,21 +1,26 @@
 package app
 
 import (
-	"testing"
+	"encoding/json"
 	"net/http"
 	"net/http/httptest"
-	"github.com/stretchr/testify/assert"
 	"net/url"
-	"encoding/json"
+	"os"
 	"strconv"
+	"testing"
+
+	"github.com/stretchr/testify/assert"
 	"go-Todo-web.example/model"
 )
 
-func TestTodos (t *testing.T) {
+func TestTodos(t *testing.T) {
+	os.Remove("./test.db")
 	assert := assert.New(t)
-	ts := httptest.NewServer(MakeHandler())
+	ah := MakeHandler() // app handler
+	defer ah.Close()
+	ts := httptest.NewServer(ah)
 	defer ts.Close()
-	resp, err :=http.PostForm(ts.URL+"/todos", url.Values{"name":{"Test todo item"}})
+	resp, err := http.PostForm(ts.URL+"/todos", url.Values{"name": {"Test todo item"}})
 	assert.NoError(err)
 	assert.Equal(http.StatusCreated, resp.StatusCode)
 
@@ -27,7 +32,7 @@ func TestTodos (t *testing.T) {
 
 	id1 := todo.ID
 
-	resp, err =http.PostForm(ts.URL+"/todos", url.Values{"name":{"Test todo item2"}})
+	resp, err = http.PostForm(ts.URL+"/todos", url.Values{"name": {"Test todo item2"}})
 	assert.NoError(err)
 	assert.Equal(http.StatusCreated, resp.StatusCode)
 
@@ -37,7 +42,7 @@ func TestTodos (t *testing.T) {
 
 	id2 := todo.ID
 
-	resp, err = http.Get(ts.URL+"/todos")
+	resp, err = http.Get(ts.URL + "/todos")
 	assert.NoError(err)
 	assert.Equal(http.StatusOK, resp.StatusCode)
 
@@ -48,15 +53,15 @@ func TestTodos (t *testing.T) {
 	assert.Equal(2, len(todoList))
 	assert.Equal(id1, todoList[0].ID)
 	assert.Equal(id2, todoList[1].ID)
-	for _,t := range todoList{
+	for _, t := range todoList {
 		if t.ID == id1 {
 			assert.Equal(t.Name, "Test todo item")
-		}else if t.ID == id2 {
+		} else if t.ID == id2 {
 			assert.Equal(t.Name, "Test todo item2")
 		}
 	}
 
-	resp, err = http.Get(ts.URL+"/todo-complete/"+strconv.Itoa(id1)+"?complete=true")
+	resp, err = http.Get(ts.URL + "/todo-complete/" + strconv.Itoa(id1) + "?complete=true")
 	assert.NoError(err)
 	assert.Equal(http.StatusOK, resp.StatusCode)
 	var success Success
@@ -64,7 +69,7 @@ func TestTodos (t *testing.T) {
 	assert.NoError(err)
 	assert.Equal(success.Success, true)
 
-	resp, err = http.Get(ts.URL+"/todos")
+	resp, err = http.Get(ts.URL + "/todos")
 	assert.NoError(err)
 	assert.Equal(http.StatusOK, resp.StatusCode)
 
@@ -73,19 +78,18 @@ func TestTodos (t *testing.T) {
 	assert.Equal(2, len(todoList))
 	assert.Equal(id1, todoList[0].ID)
 	assert.Equal(id2, todoList[1].ID)
-	for _,t := range todoList{
+	for _, t := range todoList {
 		if t.ID == id1 {
 			assert.True(t.Completed)
 		}
 	}
 
-
-	req,_ := http.NewRequest("DELETE",ts.URL+"/todos/"+strconv.Itoa(id1),nil)
+	req, _ := http.NewRequest("DELETE", ts.URL+"/todos/"+strconv.Itoa(id1), nil)
 	resp, err = http.DefaultClient.Do(req)
 	assert.NoError(err)
 	assert.Equal(http.StatusOK, resp.StatusCode)
 
-	resp, err = http.Get(ts.URL+"/todos")
+	resp, err = http.Get(ts.URL + "/todos")
 	assert.NoError(err)
 	assert.Equal(http.StatusOK, resp.StatusCode)
 

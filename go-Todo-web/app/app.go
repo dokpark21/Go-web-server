@@ -1,11 +1,14 @@
 package app
 
 import (
+	"log"
 	"net/http"
 	"strconv"
 
 	"github.com/gorilla/mux"
+	"github.com/joho/godotenv"
 	"github.com/unrolled/render"
+	"github.com/urfave/negroni"
 	"go-Todo-web.example/model"
 )
 
@@ -15,6 +18,18 @@ var rd *render.Render = render.New()
 type AppHandler struct {
 	http.Handler
 	db model.DBHandler
+}
+
+func getSessionID(r *http.Request) string {
+	session, err := store.Get(r, "session")
+	if err != nil {
+		return ""
+	}
+	val := session.Values["id"]
+	if val == nil {
+		return ""
+	}
+	return val.(string)
 }
 
 func (a *AppHandler) indexHandler(w http.ResponseWriter, r *http.Request) {
@@ -67,17 +82,54 @@ func (a *AppHandler) Close() {
 	a.db.Close()
 }
 
+func CheckSignin(w http.ResponseWriter, r *http.Request, next http.HandlerFunc) {
+	// 만약 유저가 로그인 페이지를 요청했다면 바로 next 핸들러를 실행한다. 아니면 무한루프에 빠짐
+	if r.URL.Path == "/signin.html" || r.URL.Path == "/auth/google/login" || r.URL.Path == "/auth/google/callback" {
+		next(w, r)
+		return
+	}
+	// session id를 가져온다.
+	sessionID := getSessionID(r)
+	if sessionID != "" {
+		// session id가 있으면 로그인 상태이므로 다음 핸들러를 실행한다.
+		next(w, r)
+		return
+	} else {
+		// session id가 없으면 로그인이 안된 상태이므로 로그인 페이지로 이동한다.
+		http.Redirect(w, r, "/signin.html", http.StatusTemporaryRedirect)
+	}
+}
+
 func MakeHandler(filepath string) *AppHandler {
 	r := mux.NewRouter()
+
+	// negroni를 사용하여 미들웨어 단계에서 로그인 검사를 한다.
+	n := negroni.New(negroni.NewRecovery(), negroni.NewLogger(), negroni.HandlerFunc(CheckSignin), negroni.NewStatic(http.Dir("public")))
+
+	n.UseHandler(r)
+
 	a := &AppHandler{
-		Handler: r,
+		Handler: n,
 		db:      model.NewDBHandler(filepath),
 	}
+
+	err := godotenv.Load(".env")
+	if err != nil {
+		log.Fatal("Error loading .env file")
+	}
+
+	// Session key 생성
+	// id, _ := uuid.NewV4()
+	// fmt.Println(id)
+
+	envHealthCheck()
 
 	r.HandleFunc("/", a.indexHandler)
 	r.HandleFunc("/todos", a.getTodoListHandler).Methods("GET")
 	r.HandleFunc("/todos", a.addTodoHandler).Methods("POST")
 	r.HandleFunc("/todos/{id:[0-9]+}", a.removeTodoHandler).Methods("DELETE")
 	r.HandleFunc("/todo-complete/{id:[0-9]+}", a.completeTodoHandler).Methods("GET")
+	r.HandleFunc("/auth/google/login", googleLoginHandler)
+	r.HandleFunc("/auth/google/callback", googleAuthCallback)
 	return a
 }

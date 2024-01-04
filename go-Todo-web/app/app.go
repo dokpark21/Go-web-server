@@ -4,6 +4,7 @@ import (
 	"log"
 	"net/http"
 	"strconv"
+	"strings"
 
 	"github.com/gorilla/mux"
 	"github.com/joho/godotenv"
@@ -20,7 +21,8 @@ type AppHandler struct {
 	db model.DBHandler
 }
 
-func getSessionID(r *http.Request) string {
+// func pointer를 값으로 갖는 variable
+var getSessionID = func(r *http.Request) string {
 	session, err := store.Get(r, "session")
 	if err != nil {
 		return ""
@@ -37,13 +39,15 @@ func (a *AppHandler) indexHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 func (a *AppHandler) getTodoListHandler(w http.ResponseWriter, r *http.Request) {
-	list := a.db.GetTodos()
+	sessionId := getSessionID(r)
+	list := a.db.GetTodos(sessionId)
 	rd.JSON(w, http.StatusOK, list)
 }
 
 func (a *AppHandler) addTodoHandler(w http.ResponseWriter, r *http.Request) {
+	sessionId := getSessionID(r)
 	name := r.FormValue("name")
-	todo := a.db.AddTodo(name)
+	todo := a.db.AddTodo(name, sessionId)
 	rd.JSON(w, http.StatusCreated, todo)
 }
 
@@ -84,7 +88,7 @@ func (a *AppHandler) Close() {
 
 func CheckSignin(w http.ResponseWriter, r *http.Request, next http.HandlerFunc) {
 	// 만약 유저가 로그인 페이지를 요청했다면 바로 next 핸들러를 실행한다. 아니면 무한루프에 빠짐
-	if r.URL.Path == "/signin.html" || r.URL.Path == "/auth/google/login" || r.URL.Path == "/auth/google/callback" {
+	if strings.Contains(r.URL.Path, "/signin") || strings.Contains(r.URL.Path, "/auth") {
 		next(w, r)
 		return
 	}

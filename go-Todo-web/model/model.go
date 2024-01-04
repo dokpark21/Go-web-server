@@ -14,8 +14,8 @@ type Todo struct {
 
 // db handler 정의
 type DBHandler interface {
-	GetTodos() []*Todo
-	AddTodo(name string) *Todo
+	GetTodos(sessionId string) []*Todo
+	AddTodo(name string, sessionId string) *Todo
 	RemoveTodo(id int) bool
 	CompleteTodo(id int, complete bool) bool
 	// db 사용 생명주기 관리: db 연결 종료를 사용하는 쪽에 위임(sqliteHandler의 Close 함수 사용)

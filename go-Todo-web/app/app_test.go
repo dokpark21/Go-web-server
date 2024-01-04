@@ -14,9 +14,13 @@ import (
 )
 
 func TestTodos(t *testing.T) {
+	// test code에서만 이런식으로 반환
+	getSessionID = func(r *http.Request) string {
+		return "test_session_id"
+	}
 	os.Remove("./test.db")
 	assert := assert.New(t)
-	ah := MakeHandler() // app handler
+	ah := MakeHandler("./test.db") // app handler
 	defer ah.Close()
 	ts := httptest.NewServer(ah)
 	defer ts.Close()

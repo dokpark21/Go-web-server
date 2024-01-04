@@ -16,9 +16,9 @@ func (s *sqliteHandler) Close() {
 }
 
 // memoryHandler의 메서드 정의
-func (s *sqliteHandler) GetTodos() []*Todo {
+func (s *sqliteHandler) GetTodos(sessionId string) []*Todo {
 	todos := []*Todo{}
-	rows, err := s.db.Query("SELECT id, name, complete, createdAt FROM todos")
+	rows, err := s.db.Query("SELECT id, name, complete, createdAt FROM todos WHERE sessionId=?", sessionId)
 	if err != nil {
 		panic(err)
 	}
@@ -31,12 +31,12 @@ func (s *sqliteHandler) GetTodos() []*Todo {
 	return todos
 }
 
-func (s *sqliteHandler) AddTodo(name string) *Todo {
-	stmt, err := s.db.Prepare("INSERT INTO todos (name, complete, createdAt) VALUES (?, ?, datetime('now'))")
+func (s *sqliteHandler) AddTodo(name string, sessionId string) *Todo {
+	stmt, err := s.db.Prepare("INSERT INTO todos (name ,sessionId ,complete, createdAt) VALUES (?, ?, ?,datetime('now'))")
 	if err != nil {
 		panic(err)
 	}
-	rst, err := stmt.Exec(name, false)
+	rst, err := stmt.Exec(name, sessionId, false)
 	if err != nil {
 		panic(err)
 	}
@@ -86,9 +86,13 @@ func newSqliteHandler(filepath string) DBHandler {
 		`CREATE TABLE IF NOT EXISTS todos (
 			id INTEGER PRIMARY KEY AUTOINCREMENT,
 			name TEXT,
+			sessionId STRING,
 			complete BOOLEAN,
 			createdAt DATETIME
-		)`)
+		);
+		CREATE INDEX IF NOT EXISTS sessionIdIndexOnTodos ON todos (
+			sessionId ASC
+		);`) // 데이터를 효울적으로 찾기위해 인덱스 생성
 	statement.Exec()
 	return &sqliteHandler{db: database}
 }
